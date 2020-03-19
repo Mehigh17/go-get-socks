@@ -32,7 +32,8 @@ func Start(network, address string) (net.Listener, error) {
 func handleConnection(conn Conn) {
 	methods, err := conn.GetMethods()
 	if err != nil {
-		log.Fatal(err)
+		log.Println(err)
+		return
 	}
 
 	if !hasMethod(NoAuthentication, methods) {
@@ -52,6 +53,7 @@ func handleConnection(conn Conn) {
 
 	// create TCP connection with target
 	targetConn, err := net.Dial("tcp", fmt.Sprintf("%s:%d", req.DestinationAddress.Address(), req.DestinationPort))
+	defer targetConn.Close()
 	if err != nil {
 		targetConn.Close()
 		conn.clientConn.Close()
@@ -59,14 +61,18 @@ func handleConnection(conn Conn) {
 		return
 	}
 
-	conn.WriteReply(Reply{
+	err = conn.WriteReply(Reply{
 		Version:     req.Version,
 		Response:    Succedeed,
 		Reserved:    0x00,
 		AddressType: req.AddressType,
-		BindAddress: req.DestinationAddress,
-		BindPort:    req.DestinationPort,
+		BindAddress: req.DestinationAddress, // TODO: Put the actual target connection address.
+		BindPort:    req.DestinationPort,    // Idem as above.
 	})
+	if err != nil {
+		log.Println(err)
+		return
+	}
 
 	go io.Copy(conn.clientConn, targetConn)
 	io.Copy(targetConn, conn.clientConn)
