@@ -139,7 +139,9 @@ func (conn Conn) checkVersion() error {
 
 // GetMethods obtains the methods from the SOCKS client.
 func (conn Conn) GetMethods() ([]AuthMethod, error) {
-	conn.checkVersion()
+	if err := conn.checkVersion(); err != nil {
+		return []AuthMethod{}, err
+	}
 
 	methodCount, err := conn.reader.ReadByte()
 	if err != nil {
