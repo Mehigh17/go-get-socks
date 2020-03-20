@@ -1,10 +1,10 @@
 package socks
 
 import (
-	"fmt"
 	"io"
 	"log"
 	"net"
+	"strconv"
 )
 
 // Start starts the SOCKS 5 server on the given address.
@@ -55,11 +55,11 @@ func handleConnection(conn Conn) {
 	targetConn, err := net.Dial("tcp", fmt.Sprintf("%s:%d", req.DestinationAddress.Address(), req.DestinationPort))
 	defer targetConn.Close()
 	if err != nil {
-		targetConn.Close()
 		conn.clientConn.Close()
 		log.Println(err)
 		return
 	}
+	defer targetConn.Close()
 
 	err = conn.WriteReply(Reply{
 		Version:     req.Version,
