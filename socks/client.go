@@ -52,8 +52,8 @@ func handleConnection(conn Conn) {
 	}
 
 	// create TCP connection with target
-	targetConn, err := net.Dial("tcp", fmt.Sprintf("%s:%d", req.DestinationAddress.Address(), req.DestinationPort))
-	defer targetConn.Close()
+	addr := net.JoinHostPort(req.DestinationAddress.Address(), strconv.Itoa(int(req.DestinationPort)))
+	targetConn, err := net.Dial(req.DestinationAddress.Network(), addr)
 	if err != nil {
 		conn.clientConn.Close()
 		log.Println(err)
