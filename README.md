@@ -13,6 +13,19 @@ GGS is a simple, uncomplete and work-in-progress implementation of the SOCKS5 RF
 - [ ] Add UDP requests support
 - [ ] Add rule sets for configurable allowable hosts
 
+# Usage
+
+Import the package and start the server:
+```go
+import "github.com/Mehigh17/go-get-socks"
+
+func main() {
+    socks.Start("tcp", ":9050") // 9050 is the port the socks server will run on
+}
+```
+
+Running the existing /cmd/ binary will start the server on default 8080 port unless another port is given in run arguments.
+
 # License
 
 MIT
