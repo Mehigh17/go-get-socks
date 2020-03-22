@@ -52,6 +52,14 @@ func (ipv4 IPv4) Network() string { return "tcp4" }
 func (ipv4 IPv4) Address() string { return net.IP(ipv4).String() }
 func (ipv4 IPv4) Bytes() []byte   { return ipv4[0:4] }
 
+// IPv6 represents an IP address in IP version 6 format.
+type IPv6 net.IP
+
+func (ipv6 IPv6) Type() AddrType  { return IPv6Addr }
+func (ipv6 IPv6) Network() string { return "tcp6" }
+func (ipv6 IPv6) Address() string { return net.IP(ipv6).String() }
+func (ipv6 IPv6) Bytes() []byte   { return ipv6 }
+
 // Command is the request/reply command type.
 type Command byte
 
@@ -192,45 +200,9 @@ func (conn Conn) ReadRequest() (Request, error) {
 	// ------------------
 
 	// Read Address
-	addrByte, err := conn.reader.ReadByte()
+	addr, err := conn.readAddress()
 	if err != nil {
 		return Request{}, err
-	}
-
-	addr := AddrType(addrByte)
-	if addr != IPv4Addr && addr != IPv6Addr && addr != DomainNameAddr {
-		conn.WriteReply(Reply{
-			Version:  SocksVersion,
-			Reserved: AddressTypeNotSupported,
-		})
-		conn.clientConn.Close()
-		return Request{}, errors.New(fmt.Sprintln(ErrAddressTypeNotSupported, addr))
-	}
-
-	var dstAddr Addr
-	var dstAddrBytes []byte
-	if addr == IPv4Addr {
-		dstAddrBytes = make([]byte, 4)
-	} else if addr == DomainNameAddr {
-		len, err := conn.reader.ReadByte()
-		dstAddrBytes = make([]byte, len)
-
-		if err != nil {
-			return Request{}, err
-		}
-	} else if addr == IPv6Addr {
-		dstAddrBytes = make([]byte, 16)
-	}
-
-	_, err = io.ReadFull(conn.reader, dstAddrBytes)
-	if err != nil {
-		return Request{}, err
-	}
-
-	if addr == IPv4Addr {
-		dstAddr = IPv4(dstAddrBytes)
-	} else if addr == DomainNameAddr {
-		dstAddr = FQDN(dstAddrBytes)
 	}
 
 	// Read Port
@@ -244,10 +216,58 @@ func (conn Conn) ReadRequest() (Request, error) {
 		Version:            SocksVersion,
 		Command:            cmd,
 		Reserved:           0x00,
-		AddressType:        addr,
-		DestinationAddress: dstAddr,
+		AddressType:        addr.Type(),
+		DestinationAddress: addr,
 		DestinationPort:    port,
 	}, nil
+}
+
+// Read the address from the byte buffer. The first byte is the address type.
+func (conn Conn) readAddress() (Addr, error) {
+	addrByte, err := conn.reader.ReadByte()
+	if err != nil {
+		return nil, err
+	}
+
+	addr := AddrType(addrByte)
+	if addr != IPv4Addr && addr != IPv6Addr && addr != DomainNameAddr {
+		conn.WriteReply(Reply{
+			Version:  SocksVersion,
+			Reserved: AddressTypeNotSupported,
+		})
+		conn.clientConn.Close()
+		return nil, errors.New(fmt.Sprintln(ErrAddressTypeNotSupported, addr))
+	}
+
+	var dstAddr Addr
+	var dstAddrBytes []byte
+	var len byte
+	if addr == IPv4Addr {
+		len = 4
+	} else if addr == DomainNameAddr {
+		var err error
+		if len, err = conn.reader.ReadByte(); err != nil {
+			return nil, err
+		}
+	} else if addr == IPv6Addr {
+		len = 16
+	}
+	dstAddrBytes = make([]byte, len)
+
+	_, err = io.ReadFull(conn.reader, dstAddrBytes)
+	if err != nil {
+		return nil, err
+	}
+
+	if addr == IPv4Addr {
+		dstAddr = IPv4(dstAddrBytes)
+	} else if addr == DomainNameAddr {
+		dstAddr = FQDN(dstAddrBytes)
+	} else if addr == IPv6Addr {
+		dstAddr = IPv6(dstAddrBytes)
+	}
+
+	return dstAddr, nil
 }
 
 // WriteReply writes a reply to an active connection.
