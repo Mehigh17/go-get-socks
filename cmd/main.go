@@ -2,10 +2,11 @@ package main
 
 import (
 	"fmt"
-	socks "go-get-socks/socks"
 	"log"
 	"os"
 	"strconv"
+
+	"github.com/Mehigh17/go-get-socks/socks"
 )
 
 const (
