@@ -7,7 +7,7 @@ import (
 	"strconv"
 )
 
-// Start starts the SOCKS 5 server on the given address.
+// Start the SOCKS 5 server on the given address.
 //
 // Network can be "tcp" or "udp"
 func Start(network, address string) (net.Listener, error) {
@@ -30,6 +30,8 @@ func Start(network, address string) (net.Listener, error) {
 }
 
 func handleConnection(conn Conn) {
+	defer conn.clientConn.Close()
+
 	methods, err := conn.GetMethods()
 	if err != nil {
 		log.Println(err)
@@ -38,7 +40,6 @@ func handleConnection(conn Conn) {
 
 	if !hasMethod(NoAuthentication, methods) {
 		log.Println("SOCKS client doesn't support 'no authentication' method.")
-		conn.clientConn.Close()
 		return
 	}
 
@@ -47,7 +48,6 @@ func handleConnection(conn Conn) {
 	req, err := conn.ReadRequest()
 	if err != nil {
 		log.Println(err)
-		conn.clientConn.Close()
 		return
 	}
 
@@ -55,7 +55,6 @@ func handleConnection(conn Conn) {
 	addr := net.JoinHostPort(req.DestinationAddress.Address(), strconv.Itoa(int(req.DestinationPort)))
 	targetConn, err := net.Dial(req.DestinationAddress.Network(), addr)
 	if err != nil {
-		conn.clientConn.Close()
 		log.Println(err)
 		return
 	}

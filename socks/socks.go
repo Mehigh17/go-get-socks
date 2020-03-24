@@ -138,7 +138,6 @@ func (conn Conn) checkVersion() error {
 	}
 
 	if ver != SocksVersion {
-		conn.clientConn.Close()
 		return errors.New(ErrUnsupportedVersion)
 	}
 
@@ -191,7 +190,6 @@ func (conn Conn) ReadRequest() (Request, error) {
 			Version:  SocksVersion,
 			Response: CommandNotSupported,
 		})
-		conn.clientConn.Close()
 		return Request{}, errors.New(ErrUnsupportedCommand)
 	}
 
@@ -235,7 +233,6 @@ func (conn Conn) readAddress() (Addr, error) {
 			Version:  SocksVersion,
 			Reserved: AddressTypeNotSupported,
 		})
-		conn.clientConn.Close()
 		return nil, errors.New(fmt.Sprintln(ErrAddressTypeNotSupported, addr))
 	}
 
