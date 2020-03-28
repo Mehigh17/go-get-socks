@@ -9,10 +9,10 @@ import (
 	"net"
 )
 
-const (
-	ErrUnsupportedVersion      = "socks: unsupported version"
-	ErrUnsupportedCommand      = "socks: invalid command"
-	ErrAddressTypeNotSupported = "socks: address type not supported"
+var (
+	ErrUnsupportedVersion      = errors.New("socks: unsupported version")
+	ErrUnsupportedCommand      = errors.New("socks: invalid command")
+	ErrAddressTypeNotSupported = errors.New("socks: address type not supported")
 )
 
 // AddrType represents the address type used in the SOCKS request/reply exchange.
@@ -138,7 +138,7 @@ func (conn Conn) checkVersion() error {
 	}
 
 	if ver != SocksVersion {
-		return errors.New(ErrUnsupportedVersion)
+		return ErrUnsupportedVersion
 	}
 
 	return nil
@@ -190,7 +190,7 @@ func (conn Conn) ReadRequest() (Request, error) {
 			Version:  SocksVersion,
 			Response: CommandNotSupported,
 		})
-		return Request{}, errors.New(ErrUnsupportedCommand)
+		return Request{}, ErrUnsupportedCommand
 	}
 
 	// jump over reserved
