@@ -10,7 +10,7 @@ import (
 // Start the SOCKS 5 server on the given address.
 //
 // Network can be "tcp" or "udp"
-func Start(network, address string) (net.Listener, error) {
+func (conn Conn) Start(network, address string) (net.Listener, error) {
 	ln, err := net.Listen(network, address)
 	if err != nil {
 		panic(err)
@@ -32,18 +32,26 @@ func Start(network, address string) (net.Listener, error) {
 func handleConnection(conn Conn) {
 	defer conn.clientConn.Close()
 
-	methods, err := conn.GetMethods()
+	clientAuthMethods, err := conn.GetMethods()
 	if err != nil {
 		log.Println(err)
 		return
 	}
 
-	if !hasMethod(NoAuthentication, methods) {
-		log.Println("SOCKS client doesn't support 'no authentication' method.")
+	if !hasMethod(conn.authMethod, clientAuthMethods) {
+		log.Println("SOCKS client doesn't support the authentication method.")
 		return
 	}
 
-	conn.clientConn.Write([]byte{SocksVersion, byte(NoAuthentication)})
+	conn.clientConn.Write([]byte{SocksVersion, byte(conn.authMethod)})
+
+	if conn.authMethod == UsernamePassword {
+		err := conn.handleBasicAuth()
+		if err != nil {
+			log.Println(err)
+			return
+		}
+	}
 
 	req, err := conn.ReadRequest()
 	if err != nil {
