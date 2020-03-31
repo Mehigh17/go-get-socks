@@ -7,10 +7,16 @@ import (
 	"strconv"
 )
 
+// Client represents a SOCKS5 client.
+type Client struct {
+	authMethod    AuthMethod
+	authenticator BasicAuthenticator
+}
+
 // Start the SOCKS 5 server on the given address.
 //
 // Network can be "tcp" or "udp"
-func (conn Conn) Start(network, address string) (net.Listener, error) {
+func (client Client) Start(network, address string) (net.Listener, error) {
 	ln, err := net.Listen(network, address)
 	if err != nil {
 		panic(err)
@@ -25,11 +31,11 @@ func (conn Conn) Start(network, address string) (net.Listener, error) {
 		}
 
 		sockConn := NewSocksConn(conn)
-		go handleConnection(sockConn)
+		go client.handleConnection(sockConn)
 	}
 }
 
-func handleConnection(conn Conn) {
+func (client Client) handleConnection(conn Conn) {
 	defer conn.clientConn.Close()
 
 	clientAuthMethods, err := conn.GetMethods()
@@ -38,15 +44,16 @@ func handleConnection(conn Conn) {
 		return
 	}
 
-	if !hasMethod(conn.authMethod, clientAuthMethods) {
+	if !hasMethod(client.authMethod, clientAuthMethods) {
 		log.Println("SOCKS client doesn't support the authentication method.")
+		conn.clientConn.Write([]byte{SocksVersion, NoAcceptableMethods})
 		return
 	}
 
-	conn.clientConn.Write([]byte{SocksVersion, byte(conn.authMethod)})
+	conn.clientConn.Write([]byte{SocksVersion, byte(client.authMethod)})
 
-	if conn.authMethod == UsernamePassword {
-		err := conn.handleBasicAuth()
+	if client.authMethod == UsernamePassword {
+		err := client.handleBasicAuth(conn)
 		if err != nil {
 			log.Println(err)
 			return
@@ -93,4 +100,9 @@ func hasMethod(method AuthMethod, methods []AuthMethod) bool {
 	}
 
 	return false
+}
+
+// NewClient creates a new instance of SOCKS 5 client.
+func NewClient() Client {
+	return Client{}
 }

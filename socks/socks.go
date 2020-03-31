@@ -84,15 +84,6 @@ const (
 	AddressTypeNotSupported       = 0x08
 )
 
-// AuthMethod is authentication method type described by SOCKS.
-type AuthMethod byte
-
-const (
-	NoAuthentication AuthMethod = 0x00
-	GSSAPI           AuthMethod = 0x01
-	UsernamePassword AuthMethod = 0x02
-)
-
 // Request represents the request made by the SOCKS client to the proxy server.
 type Request struct {
 	Version            byte

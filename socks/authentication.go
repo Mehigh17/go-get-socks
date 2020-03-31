@@ -11,6 +11,11 @@ var (
 )
 
 const (
+	// NoAcceptableMethods of authentication have been found.
+	NoAcceptableMethods = 0xFF
+)
+
+const (
 	AuthenticationSuccess = 0x00
 )
 
@@ -42,20 +47,20 @@ func (e AuthError) Code() byte {
 type BasicAuthenticator func(string, string) error
 
 // SetNoAuthentication sets the proxy to not require any authentication upon using it.
-func (conn *Conn) SetNoAuthentication() {
-	conn.authMethod = NoAuthentication
+func (client *Client) SetNoAuthentication() {
+	client.authMethod = NoAuthentication
 }
 
 // SetBasicAuth sets the proxy to require an username and password upon connection.
 //
 // A validator function must be provided which will validate the username and password received as (username string, password string).
 // The validator function must return nil error if the authentication has succeed, otherwise provide a byte representing the error code, and an error specifying why the authentication failed.
-func (conn *Conn) SetBasicAuth(authenticator BasicAuthenticator) {
-	conn.authMethod = UsernamePassword
-	conn.authenticator = authenticator
+func (client *Client) SetBasicAuth(authenticator BasicAuthenticator) {
+	client.authMethod = UsernamePassword
+	client.authenticator = authenticator
 }
 
-func (conn Conn) handleBasicAuth() error {
+func (client Client) handleBasicAuth(conn Conn) error {
 	ver, err := conn.reader.ReadByte()
 
 	if err != nil {
@@ -82,7 +87,7 @@ func (conn Conn) handleBasicAuth() error {
 	passwordBytes := make([]byte, passwordLen)
 	io.ReadFull(conn.reader, passwordBytes)
 
-	err = conn.authenticator(string(usernameBytes), string(passwordBytes))
+	err = client.authenticator(string(usernameBytes), string(passwordBytes))
 	if err != nil {
 		authError, ok := err.(*AuthError)
 		if ok {
