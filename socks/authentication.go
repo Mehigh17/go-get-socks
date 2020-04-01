@@ -10,6 +10,8 @@ var (
 	ErrInvalidSubnegociationVersion = errors.New("socks: invalid subnegociation version for username/password")
 )
 
+const SubnegociationVersion = 0x01
+
 const (
 	// NoAcceptableMethods of authentication have been found.
 	NoAcceptableMethods = 0xFF
@@ -67,7 +69,7 @@ func (client Client) handleBasicAuth(conn Conn) error {
 		return err
 	}
 
-	if ver != 0x01 {
+	if ver != SubnegociationVersion {
 		return ErrInvalidSubnegociationVersion
 	}
 
@@ -91,14 +93,14 @@ func (client Client) handleBasicAuth(conn Conn) error {
 	if err != nil {
 		authError, ok := err.(*AuthError)
 		if ok {
-			_, err = conn.clientConn.Write([]byte{authError.Code()})
+			_, err = conn.clientConn.Write([]byte{SubnegociationVersion, authError.Code()})
 		} else {
-			_, err = conn.clientConn.Write([]byte{0x01}) // Return arbitrary byte other than 0 to signal that authentication failed.
+			_, err = conn.clientConn.Write([]byte{SubnegociationVersion, 0x01}) // Return arbitrary byte other than 0 to signal that authentication failed.
 		}
 		return err
 	}
 
-	_, err = conn.clientConn.Write([]byte{AuthenticationSuccess})
+	_, err = conn.clientConn.Write([]byte{SubnegociationVersion, AuthenticationSuccess})
 	if err != nil {
 		return err
 	}
