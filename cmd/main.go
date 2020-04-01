@@ -13,7 +13,11 @@ const (
 	DefaultPort = 8080
 )
 
+// Test with: ncat -C --proxy localhost:8080 --proxy-type socks5 --proxy-auth none google.com 80
 func main() {
+	socksClient := socks.Client{}
+	socksClient.SetNoAuthentication()
+
 	var port int = DefaultPort
 	if len(os.Args) == 2 {
 		var err error
@@ -22,9 +26,22 @@ func main() {
 			log.Println(err)
 			port = DefaultPort
 		}
+	} else if len(os.Args) == 4 {
+		log.Print("Server started with user/pass authentication required.")
+
+		socksClient.SetBasicAuth(func(username, password string) error {
+			if username == os.Args[2] && password == os.Args[3] {
+				return nil
+			}
+
+			return socks.AuthError{
+				Message:    "Invalid username or password",
+				ResultCode: 0x01,
+			}
+		})
 	} else {
-		log.Printf("no port specified on launch, running default %d\n", DefaultPort)
+		log.Printf("command [port [username password]] (default port %d)\n", DefaultPort)
 	}
 
-	socks.Start("tcp", fmt.Sprintf(":%d", port))
+	socksClient.Start("tcp", fmt.Sprintf(":%d", port))
 }
