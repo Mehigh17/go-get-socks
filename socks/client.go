@@ -9,22 +9,23 @@ import (
 
 // Client represents a SOCKS5 client.
 type Client struct {
+	isListening   bool
 	authMethod    AuthMethod
 	authenticator BasicAuthenticator
 }
 
-// Start the SOCKS 5 server on the given address.
-//
-// Network can be "tcp" or "udp"
-func (client Client) Start(network, address string) (net.Listener, error) {
-	ln, err := net.Listen(network, address)
+// Start the SOCKS 5 server on the given address with format [host[:port]]
+func (client *Client) Start(address string) error {
+	ln, err := net.Listen("tcp", address)
 	if err != nil {
-		panic(err)
+		return err
 	}
+
+	client.isListening = true
 
 	log.Println("SOCKS5 server listening on", address)
 
-	for {
+	for client.isListening {
 		conn, err := ln.Accept()
 		if err != nil {
 			log.Fatal(err)
@@ -33,9 +34,16 @@ func (client Client) Start(network, address string) (net.Listener, error) {
 		sockConn := NewSocksConn(conn)
 		go client.handleConnection(sockConn)
 	}
+
+	return ln.Close()
 }
 
-func (client Client) handleConnection(conn Conn) {
+// Stop will signal the server to not accept any more requests.
+func (client *Client) Stop() {
+	client.isListening = false
+}
+
+func (client *Client) handleConnection(conn Conn) {
 	defer conn.clientConn.Close()
 
 	clientAuthMethods, err := conn.GetMethods()

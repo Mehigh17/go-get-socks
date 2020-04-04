@@ -1,8 +1,8 @@
 package main
 
 import (
-	"fmt"
 	"log"
+	"net"
 	"os"
 	"strconv"
 
@@ -43,5 +43,6 @@ func main() {
 		log.Printf("command [port [username password]] (default port %d)\n", DefaultPort)
 	}
 
-	socksClient.Start("tcp", fmt.Sprintf(":%d", port))
+	address := net.JoinHostPort("localhost", strconv.Itoa(port))
+	socksClient.Start(address)
 }
