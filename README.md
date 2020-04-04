@@ -10,7 +10,8 @@ GGS is a simple, uncomplete and work-in-progress implementation of the SOCKS5 RF
 - [X] Add support for all 3 address types *(IPv4, IPv6, FQDN)*
 - [X] Add support for CONNECT request
 - [ ] Add support for BIND request
-- [ ] Add UDP requests support
+- [ ] Add support for UDP ASSOCIATE request
+- [ ] Add UDP relay server
 - [ ] Add rule sets for configurable allowable hosts
 
 # Usage
