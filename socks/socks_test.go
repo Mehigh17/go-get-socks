@@ -31,8 +31,8 @@ func TestReplyToBytes(t *testing.T) {
 	assert.EqualValues(t, expected, got)
 }
 
-func TestCheckVersion(t *testing.T) {
-	reader := bytes.NewReader([]byte{0x05})
+func Test_CheckVersion_With_ValidVersion(t *testing.T) {
+	reader := bytes.NewReader([]byte{SocksVersion})
 
 	conn := Conn{
 		reader:     bufio.NewReader(reader),
@@ -43,8 +43,9 @@ func TestCheckVersion(t *testing.T) {
 	assert.Nil(t, errGot)
 }
 
-func TestCheckVersionWithInvalidVersion(t *testing.T) {
-	reader := bytes.NewReader([]byte{0x00})
+func Test_CheckVersion_With_InvalidVersion(t *testing.T) {
+	const invalidVersion = 0x00
+	reader := bytes.NewReader([]byte{invalidVersion})
 
 	conn := Conn{
 		reader:     bufio.NewReader(reader),
@@ -53,4 +54,21 @@ func TestCheckVersionWithInvalidVersion(t *testing.T) {
 
 	errGot := conn.checkVersion()
 	assert.True(t, errors.Is(ErrUnsupportedVersion, errGot))
+}
+
+func Test_GetMethods_With_ValidMethods(t *testing.T) {
+	reader := bytes.NewReader([]byte{
+		SocksVersion,
+		0x03,                                                         // method count
+		byte(NoAuthentication), byte(UsernamePassword), byte(GSSAPI), // methods
+	})
+
+	conn := Conn{
+		reader:     bufio.NewReader(reader),
+		clientConn: nil,
+	}
+
+	methodsGot, err := conn.GetMethods()
+	assert.EqualValues(t, methodsGot, []AuthMethod{NoAuthentication, UsernamePassword, GSSAPI})
+	assert.Nil(t, err)
 }
