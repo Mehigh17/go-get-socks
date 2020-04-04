@@ -21,7 +21,7 @@ Import the package and start the server:
 import "github.com/Mehigh17/go-get-socks"
 
 func main() {
-    socks.Start("tcp", ":9050") // 9050 is the port the socks server will run on
+    socks.Start(":9050") // 9050 is the port the socks server will run on
 }
 ```
 
