@@ -147,13 +147,9 @@ func (conn Conn) GetMethods() ([]AuthMethod, error) {
 	}
 
 	methodsbyte := make([]byte, methodCount)
-	readMethodCount, err := io.ReadFull(conn.reader, methodsbyte)
+	_, err = io.ReadFull(conn.reader, methodsbyte)
 	if err != nil {
 		return []AuthMethod{}, err
-	}
-
-	if int(methodCount) != readMethodCount {
-		return []AuthMethod{}, errors.New(fmt.Sprintln("the number of read methods", readMethodCount, "and the expected", methodCount, " don't match"))
 	}
 
 	methods := make([]AuthMethod, methodCount)
