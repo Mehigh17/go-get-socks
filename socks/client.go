@@ -12,6 +12,13 @@ type Client struct {
 	isListening   bool
 	authMethod    AuthMethod
 	authenticator BasicAuthenticator
+	writeHandle   PacketHandle
+	readHandle    PacketHandle
+}
+
+// NewClient creates a new instance of SOCKS 5 client.
+func NewClient() Client {
+	return Client{}
 }
 
 // Start the SOCKS 5 server on the given address with format [host[:port]]
@@ -41,6 +48,12 @@ func (client *Client) Start(address string) error {
 // Stop will signal the server to not accept any more requests.
 func (client *Client) Stop() {
 	client.isListening = false
+}
+
+// HandlePackets setups two callbacks that are invoked when the client sends or receives new data from the server.
+func (client *Client) HandlePackets(incoming PacketHandle, outgoing PacketHandle) {
+	client.readHandle = incoming
+	client.writeHandle = outgoing
 }
 
 func (client *Client) handleConnection(conn Conn) {
@@ -96,8 +109,11 @@ func (client *Client) handleConnection(conn Conn) {
 		return
 	}
 
-	go io.Copy(conn.clientConn, targetConn)
-	io.Copy(targetConn, conn.clientConn)
+	interTargetToClient := NewInterceptor(conn.clientConn, targetConn, client.writeHandle, client.readHandle)
+	go io.Copy(interTargetToClient, interTargetToClient)
+
+	interClientToTarget := NewInterceptor(targetConn, conn.clientConn, client.readHandle, client.writeHandle)
+	io.Copy(interClientToTarget, interClientToTarget)
 }
 
 func hasMethod(method AuthMethod, methods []AuthMethod) bool {
@@ -108,9 +124,4 @@ func hasMethod(method AuthMethod, methods []AuthMethod) bool {
 	}
 
 	return false
-}
-
-// NewClient creates a new instance of SOCKS 5 client.
-func NewClient() Client {
-	return Client{}
 }
