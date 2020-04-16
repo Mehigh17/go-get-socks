@@ -72,3 +72,52 @@ func Test_GetMethods_With_ValidMethods(t *testing.T) {
 	assert.EqualValues(t, methodsGot, []AuthMethod{NoAuthentication, UsernamePassword, GSSAPI})
 	assert.Nil(t, err)
 }
+
+var addresstests = []struct {
+	addrType AddrType
+	bytes    []byte
+}{
+	{IPv4Addr, []byte{1, 2, 3, 4}},
+	{IPv6Addr, []byte{1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16}},
+}
+
+func Test_ReadAddress_Given_ValidIpVX(t *testing.T) {
+	for _, table := range addresstests {
+		readerBytes := []byte{byte(table.addrType)}
+		readerBytes = append(readerBytes, table.bytes...)
+
+		reader := bytes.NewReader(readerBytes)
+
+		conn := Conn{
+			reader:     bufio.NewReader(reader),
+			clientConn: nil,
+		}
+
+		addr, err := conn.readAddress()
+		assert.Equal(t, addr.Type(), table.addrType)
+		assert.EqualValues(t, addr.Bytes(), table.bytes)
+		assert.Nil(t, err)
+	}
+}
+
+func Test_ReadAddress_Given_ValidFQDN(t *testing.T) {
+	fqdnBytes := []byte{
+		5,
+		1, 2, 3, 4, 5,
+	}
+
+	readerBytes := []byte{byte(DomainNameAddr)}
+	readerBytes = append(readerBytes, fqdnBytes...)
+
+	reader := bytes.NewReader(readerBytes)
+
+	conn := Conn{
+		reader:     bufio.NewReader(reader),
+		clientConn: nil,
+	}
+
+	addr, err := conn.readAddress()
+	assert.Equal(t, addr.Type(), DomainNameAddr)
+	assert.EqualValues(t, addr.Bytes(), fqdnBytes)
+	assert.Nil(t, err)
+}
